@@ -2,7 +2,7 @@
 
 **A backend that syncs the school portal, Gmail, news, and Google Calendar into an AI generated daily briefing.**
 
-daily-briefing is an Express backend for a newspaper style personal dashboard aimed at a school student. On a schedule it pulls data from four sources, an AI model summarizes everything into one coherent briefing, and a single page app renders the result like a small daily paper: today's agenda, the weather, school notices, a filtered inbox, world headlines, and notes. A GitHub Actions worker repeats the same pipeline against a shared MongoDB cluster every six hours, and a second workflow pings the Render deployment so it never spins down.
+daily-briefing is an Express backend for a newspaper style personal dashboard aimed at a school student. On a schedule it pulls data from four sources, an AI model summarizes everything into one coherent briefing, and a single page app renders the result like a small daily paper: today's agenda, the weather, school notices, a filtered inbox, world headlines, and notes. A GitHub Actions worker repeats the same pipeline against a shared MongoDB cluster every six hours, and a second workflow pings the Render deployment through the day so it stays warm.
 
 ## What it syncs
 
@@ -38,7 +38,7 @@ All of these live under `/api` and are used by the front end:
 | `GET /items` | Synced items (mail, circulars, news) with filtering |
 | `DELETE /items/:id` | Remove an item from the feed |
 | `POST /sync/nps` `POST /sync/gmail` `POST /sync/news` `POST /sync/all` | Sync anything on demand |
-| `POST /gmail/auth` `GET /gmail/callback` `GET /gmail/status` | Gmail OAuth walk through |
+| `GET /gmail/auth` `GET /gmail/callback` `GET /gmail/status` | Gmail OAuth walk through |
 | `GET /calendar/auth` `GET /calendar/callback` | Calendar OAuth set up |
 | `POST /calendar/extract` `POST /calendar/add` | Pull event text and turn it into calendar entries |
 | `POST /summarize` | Summarize arbitrary text on demand |
@@ -52,10 +52,10 @@ All of these live under `/api` and are used by the front end:
 | Server | Render free tier (`render.yaml` in the repo) |
 | Data | MongoDB Atlas |
 | Scheduled syncs | GitHub Actions every 6 hours via `sync-worker.js` |
-| Keep alive | GitHub Actions pings the Render URL every 14 minutes |
+| Keep alive | GitHub Actions pings the Render URL every 14 minutes, 05:00 to 23:59 UTC |
 
 - `sync.yml` checks out the code, installs Playwright Chromium, runs the full sync and briefing generation inside Actions, using repository secrets for every credential.
-- `keep-render-alive.yml` hits the health endpoint every 14 minutes so the free tier does not cold start during the day.
+- `keep-render-alive.yml` curls the site root every 14 minutes during waking hours (the cron runs from 05:00 to 23:59 UTC), so the free tier does not cold start when the paper is being read.
 - A `Dockerfile` is included for any container host: Node 20, Playwright Chromium, `node server.js`.
 
 ## Local setup
